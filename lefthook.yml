@@ -1,0 +1,20 @@
+pre-commit:
+  commands:
+    rubocop-correct:
+      glob: "*.rb"
+      run: bundle exec rubocop -A --force-exclusion {staged_files} || exit 0
+commit-msg:
+  commands:
+    git-lint:
+      run: bundle exec git-lint --hook "{0}"
+pre-push:
+  parallel: true
+  commands:
+    rubocop-check:
+      files: git diff --name-only origin/$(git symbolic-ref --short HEAD)..HEAD
+      glob: "*.rb"
+      run: bundle exec rubocop --force-exclusion {files}
+    rspec:
+      files: git diff --name-only origin/$(git symbolic-ref --short HEAD)..HEAD
+      glob: "spec/**/*.rb"
+      run: bundle exec rspec {files}

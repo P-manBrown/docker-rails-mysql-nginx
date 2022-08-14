@@ -1,0 +1,60 @@
+version: '${COMPOSE_VER}'
+services:
+  db:
+    platform: linux/x86_64
+    build: ./docker/db
+    command: --authentication_policy=mysql_native_password && bash -c "chmod +x /docker-entrypoint-initdb.d/00_grant.sh"
+    healthcheck:
+      test: mysqladmin ping -h db -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}
+      interval: 15s
+    restart: on-failure
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - type: bind
+        source: ${MY_CNF_PATH}
+        target: /etc/mysql/conf.d/my.cnf
+      - type: bind
+        source: ${INITDB_PATH}
+        target: /docker-entrypoint-initdb.d
+    env_file:
+      - ${DB_ENV_FILE_PATH}
+    ports:
+      - "${DB_PORT}:3306"
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api/Dockerfile
+    command: bash -c "rm -f /myapp-backend/tmp/pids/server.pid && bundle exec puma -C config/puma.rb"
+    restart: on-failure
+    volumes:
+      - .:/myapp-backend
+      - public-data:/myapp-backend/public
+      - tmp-data:/myapp-backend/tmp
+    environment:
+      RAILS_ENV: ${APP_ENV}
+    ports:
+      - "${API_PORT}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    build: ./docker/web
+    volumes:
+      - public-data:/myapp-backend/public
+      - tmp-data:/myapp-backend/tmp
+    ports:
+      - 80:80
+    depends_on:
+      - api
+volumes:
+  mysql_data:
+  public-data:
+    driver_opts:
+      type: none
+      device: ${PWD}/public
+      o: bind
+  tmp-data:
+     driver_opts:
+      type: none
+      device: ${PWD}/tmp
+      o: bind

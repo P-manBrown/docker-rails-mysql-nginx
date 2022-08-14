@@ -1,0 +1,88 @@
+services:
+  db:
+    image: mysql:8.0.30
+    user: "999:999"
+    command: mysqld & chmod +x /docker-entrypoint-initdb.d/00_create-test-db.sh
+    healthcheck:
+      test: mysqladmin ping -h db -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}
+      interval: 1s
+      start_period: 50s
+    restart: on-failure
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - type: bind
+        source: ./docker/db/initdb.d
+        target: /docker-entrypoint-initdb.d
+    configs:
+      - source: mysql-conf
+        target: /etc/mysql/my.cnf
+    environment:
+      - TZ=Asia/Tokyo
+    env_file:
+      - ./docker/db/environment/mysql-variables.env
+    secrets:
+      - mysql-pass
+      - mysql-root-pass
+    ports:
+      - "${DB_PORT}:3306"
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api/Dockerfile
+      args:
+        - PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+      secrets:
+        - github-pkg-cred
+    command: bash -c "bundle exec puma -C config/puma.rb"
+    restart: on-failure
+    volumes:
+      - .:/${COMPOSE_PROJECT_NAME}
+      - public-data:/${COMPOSE_PROJECT_NAME}/public
+      - tmp-data:/${COMPOSE_PROJECT_NAME}/tmp
+    environment:
+      - RAILS_ENV=${APP_ENV}
+    env_file:
+      - ./docker/db/environment/mysql-variables.env
+    secrets:
+      - mysql-pass
+    ports:
+      - "${API_PORT}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    build: ./docker/web
+    volumes:
+      - public-data:/${COMPOSE_PROJECT_NAME}/public
+      - tmp-data:/${COMPOSE_PROJECT_NAME}/tmp
+    configs:
+      - source: nginx-conf
+        target: /etc/nginx/conf.d/${COMPOSE_PROJECT_NAME}.conf
+    ports:
+      - ${WEB_PORT}:80
+    depends_on:
+      - api
+configs:
+  mysql-conf:
+    file: ./docker/db/my.cnf
+  nginx-conf:
+    file: ./docker/web/nginx.conf
+secrets:
+  mysql-pass:
+     file: ./docker/db/environment/passwords/mysql-pass.txt
+  mysql-root-pass:
+     file: ./docker/db/environment/passwords/mysql-root-pass.txt
+  github-pkg-cred:
+    file: ./docker/api/secrets/github-pkg-cred.txt
+volumes:
+  mysql-data:
+  public-data:
+    driver_opts:
+      type: none
+      device: ${PWD}/public
+      o: bind
+  tmp-data:
+     driver_opts:
+      type: none
+      device: ${PWD}/tmp
+      o: bind
