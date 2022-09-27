@@ -1,6 +1,6 @@
-# frozen_string_literal: true
-# 以下のコメントは、SolargraphがRailsアプリをに対応する上で不足している部分を補うための記述。
-# これらはすべてYARDで書かれているためSolargraphではマップされるが、実行時には無視される。
+# rubocop:disable all
+# SolargraphがRailsアプリをに対応する上で不足している部分を補うためのコメント。
+# すべてYARDで書かれているためSolargraphではマップされるが実行時には無視される。
 
 # @!parse
 #   class ActionController::Base

@@ -6,7 +6,7 @@ services:
       mysqld
       & chmod 555 /docker-entrypoint-initdb.d/00_create-test-db.sh
     healthcheck:
-      test: mysqladmin ping -h db -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}
+      test: mysqladmin ping -h db -u${DOLLAR}${DOLLAR}{MYSQL_USER} -p${DOLLAR}${DOLLAR}{MYSQL_PASSWORD}
       interval: 1s
       start_period: 50s
     restart: on-failure
@@ -17,7 +17,7 @@ services:
         target: /docker-entrypoint-initdb.d
     configs:
       - source: mysql-docker
-        target: /etc/mysql/conf.d/docker.cnf
+        target: /etc/mysql/conf.d/myapp.cnf
     environment:
       - TZ=Asia/Tokyo
     env_file:
@@ -26,29 +26,30 @@ services:
       - mysql-pass
       - mysql-root-pass
     ports:
-      - ${DB_PORT:-3306}:3306
+      - ${DOLLAR}{DB_PORT}:3306
   api:
     build:
       context: .
       dockerfile: ./.docker/api/Dockerfile
       args:
-        - PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+        - PROJECT_NAME=${DOLLAR}{COMPOSE_PROJECT_NAME}
         - RUBY_IMAGE_TAG=3.1.2
         - RUBYGEMS_VERSION=3.3.20
       secrets:
         - github-pkg-cred
     restart: on-failure
     volumes:
-      - .:/${COMPOSE_PROJECT_NAME}
+      - .:/${DOLLAR}{COMPOSE_PROJECT_NAME}
       - gem-home:/usr/local/bundle
-      - puma-socket:/${COMPOSE_PROJECT_NAME}/tmp/sockets
+      - puma-socket:/${DOLLAR}{COMPOSE_PROJECT_NAME}/tmp/sockets
     environment:
-      - RAILS_ENV=${RAILS_ENV:-development}
-      - XDG_CONFIG_DIRS=/${COMPOSE_PROJECT_NAME}
+      - RAILS_ENV=${DOLLAR}{RAILS_ENV}
     env_file:
       - ./.docker/db/environment/mysql-variables.env
     secrets:
       - mysql-pass
+    ports:
+      - ${DOLLAR}{API_PORT}:3000
     depends_on:
       db:
         condition: service_healthy
@@ -58,19 +59,19 @@ services:
       args:
         - NGINX_IMAGE_TAG=1.23.1
     volumes:
-      - puma-socket:/${COMPOSE_PROJECT_NAME}/tmp/sockets
+      - puma-socket:/${DOLLAR}{COMPOSE_PROJECT_NAME}/tmp/sockets
     configs:
-      - source: nginx-myapp
-        target: /etc/nginx/conf.d/myapp.conf
+      - source: nginx-${TPL_PROJECT_NAME}
+        target: /etc/nginx/conf.d/${TPL_PROJECT_NAME}.conf
     ports:
-      - ${WEB_PORT:-80}:80
+      - ${DOLLAR}{WEB_PORT}:80
     depends_on:
       - api
 configs:
   mysql-docker:
     file: ./.docker/db/conf.d/docker.cnf
-  nginx-myapp:
-    file: ./.docker/web/conf.d/myapp.conf
+  nginx-${TPL_PROJECT_NAME}:
+    file: ./.docker/web/conf.d/${TPL_PROJECT_NAME}.conf
 secrets:
   mysql-pass:
      file: ./.docker/db/environment/passwords/mysql-pass.txt

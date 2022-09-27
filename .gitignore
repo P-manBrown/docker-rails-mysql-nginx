@@ -1,9 +1,9 @@
 # Ignore docker secrets files
-/docker/db/environment/passwords/*
-!/docker/db/environment/passwords/*.sample
-/docker/api/secrets/*
-!/docker/api/secrets/*.sample
+/.docker/db/environment/passwords/*
+!/.docker/db/environment/passwords/*.template
+/.docker/api/secrets/*
+!/.docker/api/secrets/*.template
 
 # Ignore .env files
 *.env*
-!*.env.sample
+!*.env.template

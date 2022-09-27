@@ -1,21 +1,24 @@
 set -eu
 
-# GitHub Packages への認証
-bundle config https://rubygems.pkg.github.com/P-manBrown \
-    $(cat ./docker/api/secrets/github-pkg-cred.txt)
+function copy_and_ignore() {
+	file_path=$1
+	target_path=$2
+	file_name=$(basename "$file_path")
+	ignore_path=$(echo $target_path$file_name | sed -e "s:^./:/:; /^[^/]/s:^:/:")
+	if ! cat ./.git/info/exclude | grep -q $ignore_path; then
+		echo -e "$ignore_path" >> ./.git/info/exclude
+	fi
+	cp --update $file_path $target_path
+}
 
-# Solargraphの設定
-## Rails 対応
-cat ./.git/info/exclude | grep -q solargraph \
-|| echo -e '/.solargraph.yml\n/config/solargraph.rb' \
-    >> ./.git/info/exclude
-cp -u ./.devcontainer/solargraph/.solargraph.yml \
-      ./
+copy_and_ignore ./.devcontainer/vscode/launch.json .vscode/
+
+GITHUB_PKG_CRED=$(cat ./.docker/api/secrets/github-pkg-cred.txt)
+bundle config https://rubygems.pkg.github.com/P-manBrown $GITHUB_PKG_CRED
+
 mkdir -p ./config/
-cp -u ./.devcontainer/solargraph/solargraph.rb \
-      ./config/
-## Gemのドキュメント生成
-yard gems
+copy_and_ignore ./.devcontainer/solargraph/.solargraph.yml ./
+copy_and_ignore ./.devcontainer/solargraph/solargraph.rb ./config/
 
-# Lefthookの設定
-lefthook install
+copy_and_ignore ./.devcontainer/lefthook/lefthook-local.yml ./
+bundle exec lefthook install

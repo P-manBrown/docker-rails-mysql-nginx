@@ -6,14 +6,16 @@ require:
 AllCops:
   NewCops: enable
   Exclude:
-    - ".devcontainer/**/*"
-    - "db/**/*"
-    - "config/**/*"
     - "bin/{bundle,rails,rake}"
+    - "db/migrate/*"
     - "vendor/**/*"
+    - "**/spec_helper.rb"
 
 Layout/EmptyLinesAroundAccessModifier:
   EnforcedStyle: only_before
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
 
 Layout/IndentationConsistency:
   EnforcedStyle: indented_internal_methods
@@ -26,6 +28,12 @@ Style/AsciiComments:
 
 Style/Documentation:
   Enabled: false
+
+Style/RedundantReturn:
+  AllowMultipleReturnValues: true
+
+Style/Semicolon:
+  AllowAsExpressionSeparator: true
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
