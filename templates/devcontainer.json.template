@@ -1,11 +1,11 @@
 {
-  "name": "${TPL_PROJECT_NAME}-backend",
+  "name": "${TPL_PROJECT_NAME}",
   "dockerComposeFile": [
     "../compose.yml",
     "./compose.vscode.yml"
   ],
   "service": "api",
-  "workspaceFolder": "/${TPL_PROJECT_NAME}-backend",
+  "workspaceFolder": "/${TPL_PROJECT_NAME}",
   "postCreateCommand": "bash ./.devcontainer/postCreateCommand.sh",
   "customizations": {
     "vscode": {

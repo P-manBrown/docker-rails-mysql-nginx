@@ -8,12 +8,11 @@ ARG USER_NAME=ruby
 ENV TZ=Asia/Tokyo
 
 RUN <<-EOF
-	set -ex
+	set -e
 	curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 	| dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
 	chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/\
-	githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
 	| tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 	apt update
 	apt install gh -y
@@ -35,13 +34,15 @@ ENTRYPOINT ["entrypoint.sh"]
 
 USER ${USER_NAME}
 
-RUN mkdir -p /${PROJECT_NAME}/tmp/sockets/
+RUN mkdir -p /${PROJECT_NAME}/tmp/sockets
+
+RUN gh config set editor "code -w"
 
 RUN <<-EOF
-	set -eu
+	set -e
 	gem install solargraph-rails --pre
 	solargraph download-core
-	yard gems || exit 0
+	bundle exec yard gems || exit 0
 EOF
 
 RUN <<-EOF
@@ -54,7 +55,7 @@ RUN <<-EOF
 		function might_exec_yard_gems() {
 		  if [[ `history 1` =~ ^.*bundle( +((install|-+).*$)| *$) ]] ; then
 		    printf "\x1b[1m%s\n" 'Running `yard gems` to generate docs for gems.'
-		    yard gems
+		    bundle exec yard gems
 		  fi
 		}
 		export PROMPT_COMMAND='history -a && might_exec_yard_gems'
@@ -64,6 +65,6 @@ RUN <<-EOF
 	touch /home/${USER_NAME}/bashlog/.bash_history
 EOF
 
-RUN mkdir -p /home/${USER_NAME}/.vscode-server/extensions/
+RUN mkdir -p /home/${USER_NAME}/.vscode-server/extensions
 
 CMD ["bundle", "exec", "pumactl", "start"]

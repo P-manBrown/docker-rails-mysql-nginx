@@ -9,22 +9,19 @@ services:
       test: mysqladmin ping -h db -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}
       interval: 1s
       start_period: 50s
-    restart: on-failure
+    restart: always
     volumes:
       - mysql-datadir:/var/lib/mysql
       - type: bind
+        source: ./.docker/db/conf.d/docker.cnf
+        target: /etc/mysql/conf.d/docker.cnf
+      - type: bind
         source: ./.docker/db/initdb.d
         target: /docker-entrypoint-initdb.d
-    configs:
-      - source: mysql-docker
-        target: /etc/mysql/conf.d/docker.cnf
     environment:
       - TZ=Asia/Tokyo
     env_file:
       - ./.docker/db/environment/mysql-variables.env
-    secrets:
-      - mysql-pass
-      - mysql-root-pass
     ports:
       - ${DB_PORT:-3306}:3306
   api:
@@ -34,10 +31,10 @@ services:
       args:
         - PROJECT_NAME=${COMPOSE_PROJECT_NAME}
         - RUBY_IMAGE_TAG=3.1.2
-        - RUBYGEMS_VERSION=3.3.20
+        - RUBYGEMS_VERSION=3.3.22
       secrets:
         - github-pkg-cred
-    restart: on-failure
+    restart: always
     volumes:
       - .:/${COMPOSE_PROJECT_NAME}
       - gem-home:/usr/local/bundle
@@ -45,10 +42,6 @@ services:
     environment:
       - RAILS_ENV=${RAILS_ENV:-development}
       - XDG_CONFIG_DIRS=/${COMPOSE_PROJECT_NAME}
-    env_file:
-      - ./.docker/db/environment/mysql-variables.env
-    secrets:
-      - mysql-pass
     depends_on:
       db:
         condition: service_healthy
@@ -56,26 +49,18 @@ services:
     build:
       context: ./.docker/web
       args:
-        - NGINX_IMAGE_TAG=1.23.1
+        - NGINX_IMAGE_TAG=1.22.0
+    restart: always
     volumes:
       - puma-socket:/${COMPOSE_PROJECT_NAME}/tmp/sockets
-    configs:
-      - source: nginx-myapp
+      - type: bind
+        source: ./.docker/web/conf.d/myapp.conf
         target: /etc/nginx/conf.d/myapp.conf
     ports:
       - ${WEB_PORT:-80}:80
     depends_on:
       - api
-configs:
-  mysql-docker:
-    file: ./.docker/db/conf.d/docker.cnf
-  nginx-myapp:
-    file: ./.docker/web/conf.d/myapp.conf
 secrets:
-  mysql-pass:
-     file: ./.docker/db/environment/passwords/mysql-pass.txt
-  mysql-root-pass:
-     file: ./.docker/db/environment/passwords/mysql-root-pass.txt
   github-pkg-cred:
     file: ./.docker/api/secrets/github-pkg-cred.txt
 volumes:

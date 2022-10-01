@@ -4,7 +4,7 @@ pre-commit:
       glob: "*.rb"
       run: >-
         docker compose run --rm --no-deps api bash -c "
-        bundle exec rubocop -A --parallel --force-exclusion {staged_files}
+        bundle exec rubocop -A --force-exclusion {staged_files}
         || exit 0
         "
 commit-msg:
@@ -22,7 +22,7 @@ pre-push:
       glob: "*.rb"
       run: >-
         docker compose run --rm --no-deps api bash -c "
-        bundle exec rubocop --parallel --force-exclusion {files}
+        bundle exec rubocop --force-exclusion {files}
         "
     rspec:
       files: git diff --name-only HEAD @{push} || git diff --name-only HEAD main
